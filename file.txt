@@ -1,0 +1,103 @@
+-- Create profiles table
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  username TEXT UNIQUE,
+  full_name TEXT,
+  avatar_url TEXT,
+  bio TEXT,
+  location TEXT,
+  website TEXT,
+  email TEXT,
+  role TEXT DEFAULT 'user',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+-- Create posts table
+CREATE TABLE posts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT,
+  type TEXT NOT NULL CHECK (type IN ('text', 'image', 'video', 'audio')),
+  privacy TEXT NOT NULL DEFAULT 'public' CHECK (privacy IN ('public', 'friends', 'private')),
+  allow_comments BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+-- Create post_media table for storing media URLs
+CREATE TABLE post_media (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE NOT NULL,
+  media_url TEXT NOT NULL,
+  media_type TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+-- Create categories table
+CREATE TABLE categories (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+-- Create post_categories junction table
+CREATE TABLE post_categories (
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  category_id UUID REFERENCES categories(id) ON DELETE CASCADE,
+  PRIMARY KEY (post_id, category_id)
+);
+
+-- Create tags table
+CREATE TABLE tags (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+-- Create post_tags junction table
+CREATE TABLE post_tags (
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  tag_id UUID REFERENCES tags(id) ON DELETE CASCADE,
+  PRIMARY KEY (post_id, tag_id)
+);
+
+-- Create comments table
+CREATE TABLE comments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  content TEXT NOT NULL,
+  parent_id UUID REFERENCES comments(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+-- Create likes table
+CREATE TABLE likes (
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  PRIMARY KEY (post_id, user_id)
+);
+
+-- Create follows table
+CREATE TABLE follows (
+  follower_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  following_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  PRIMARY KEY (follower_id, following_id)
+);
+
+-- Create reported_content table
+CREATE TABLE reported_content (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  content_type TEXT NOT NULL CHECK (content_type IN ('post', 'comment', 'user')),
+  content_id UUID NOT NULL,
+  reported_by UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  reason TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'removed')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);

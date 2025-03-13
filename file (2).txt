@@ -1,0 +1,15 @@
+-- Function to get a user's feed (posts from people they follow)
+CREATE OR REPLACE FUNCTION get_user_feed(user_id UUID)
+RETURNS SETOF posts
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT p.*
+  FROM posts p
+  WHERE p.privacy = 'public' OR 
+        (p.privacy = 'friends' AND p.user_id IN (
+          SELECT following_id FROM follows WHERE follower_id = user_id
+        )) OR
+        p.user_id = user_id
+  ORDER BY p.created_at DESC;
+$$;

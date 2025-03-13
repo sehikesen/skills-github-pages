@@ -1,0 +1,19 @@
+-- Avatars bucket policies
+CREATE POLICY "Avatars are publicly accessible" ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
+
+CREATE POLICY "Users can upload their own avatar" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'avatars' AND
+    auth.uid() = (storage.foldername(name))[1]::uuid
+  );
+
+-- Posts bucket policies
+CREATE POLICY "Post media is publicly accessible" ON storage.objects
+  FOR SELECT USING (bucket_id = 'posts');
+
+CREATE POLICY "Users can upload to their own post folders" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'posts' AND
+    auth.uid() = (storage.foldername(name))[1]::uuid
+  );
